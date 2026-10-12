@@ -2,3 +2,4 @@ streamlit>=1.35,<2
 chromadb>=0.5,<2
 openai>=1.40,<3
 python-dotenv>=1.0,<2
+hydradb-sdk>=2.1.1,<3

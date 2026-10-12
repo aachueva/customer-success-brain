@@ -149,6 +149,36 @@ def _node_label(value):
         return None
     return str(value) if value else None
 
+def display_relationship(source, relation, target):
+    """Enrich display labels for known synthetic case relationships.
+
+    These are presentation labels, not HydraDB-native predicates.
+    Unknown relationships keep their original label.
+    """
+    s = source.lower().strip()
+    t = target.lower().strip()
+    r = str(relation).strip()
+
+    # Never overwrite a specific predicate returned by HydraDB.
+    if r.lower() not in {"related to", "related_to", ""}:
+        return r
+
+    known = {
+        ("acme-184", "ravi"): "OWNED BY",
+        ("acme-184", "security verification"): "REQUIRES",
+        ("phi redaction fix", "security validation"): "REQUIRES",
+        ("acme health ai", "phi leakage"): "HAS RISK",
+        ("acme health ai", "clinical escalation"): "EVALUATED ON",
+        ("acme health ai", "evaluation accuracy"): "MEASURED BY",
+        ("acme health ai", "security lead"): "REQUIRES SIGN-OFF FROM",
+        ("external production launch", "sign-off"): "REQUIRES",
+        ("maya chen", "security validation"): "TRACKS",
+        ("maya chen", "clinical evaluation"): "TRACKS",
+        ("maya chen", "latency"): "TRACKS",
+    }
+
+    return known.get((s, t), r)
+
 
 def graph_edges(data):
     """Use only structured triplets returned by HydraDB; no inferred edges."""
@@ -169,6 +199,7 @@ def graph_edges(data):
             else:
                 relation = str(relation)
             if source and target:
+                relation = display_relationship(source, relation, target)
                 item = (source, relation, target)
                 if item not in seen:
                     seen.add(item)
@@ -187,7 +218,11 @@ def draw_graph(data):
                     if path.combined_context:
                         st.write(path.combined_context)
         return
-    st.caption(f'{len(edges)} unique relationships from HydraDB query results. Nodes and edges are not hardcoded.')
+    st.caption(
+        f'{len(edges)} relationships retrieved from HydraDB. '
+        'Selected relationship labels are enriched for this synthetic demo; '
+        'nodes and connections come from HydraDB.'
+    )
     dot = ['digraph G {', 'rankdir=LR;', 'graph [bgcolor="transparent", pad="0.3", nodesep="0.35", ranksep="0.8"];', 'node [shape=box, style="rounded,filled", fillcolor="#E8F0FE", color="#93B4E8", fontname="Helvetica", fontsize=11];', 'edge [color="#64748B", fontname="Helvetica", fontsize=9];']
     for source, relation, target in edges[:40]:
         # JSON string quoting prevents special characters from breaking DOT.
